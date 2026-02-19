@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { MapPin, AlertCircle } from 'lucide-react';
-import { Loader } from '@googlemaps/js-api-loader';
 
 interface AddressAutocompleteProps {
   value: string;
@@ -33,15 +32,21 @@ export function AddressAutocomplete({ value, onChange, placeholder, className }:
       return;
     }
 
-    const loader = new Loader({
-      apiKey,
-      version: 'weekly',
-      libraries: ['places'],
-    });
+    const initAutocomplete = async () => {
+      try {
+        if (!window.google?.maps) {
+          const script = document.createElement('script');
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=Function.prototype`;
+          script.async = true;
+          script.defer = true;
 
-    loader
-      .load()
-      .then(() => {
+          await new Promise<void>((resolve, reject) => {
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error('Failed to load Google Maps script'));
+            document.head.appendChild(script);
+          });
+        }
+
         if (!inputRef.current) return;
 
         autocompleteRef.current = new google.maps.places.Autocomplete(inputRef.current, {
@@ -62,12 +67,14 @@ export function AddressAutocomplete({ value, onChange, placeholder, className }:
         });
 
         setIsLoading(false);
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error('Error loading Google Maps API:', error);
         setLoadError(true);
         setIsLoading(false);
-      });
+      }
+    };
+
+    initAutocomplete();
 
     return () => {
       if (autocompleteRef.current) {
