@@ -2,8 +2,9 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers":
+    "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
 Deno.serve(async (req: Request) => {
@@ -31,7 +32,9 @@ Deno.serve(async (req: Request) => {
 
     if (!stripeKey) {
       return new Response(
-        JSON.stringify({ error: "Stripe is not configured. Please contact support." }),
+        JSON.stringify({
+          error: "Stripe secret key not configured",
+        }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -39,47 +42,78 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const amountInCents = Math.round(amount * 100);
+    const amountInCents = Math.round(Number(amount) * 100);
 
-    const stripeCustomerResponse = await fetch("https://api.stripe.com/v1/customers", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${stripeKey}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        email: customerEmail,
-        name: customerName,
-      }),
-    });
+    if (amountInCents <= 0) {
+      return new Response(
+        JSON.stringify({ error: "Invalid payment amount" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // 🔹 Create Stripe customer
+    const stripeCustomerResponse = await fetch(
+      "https://api.stripe.com/v1/customers",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${stripeKey}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          email: customerEmail,
+          name: customerName,
+        }),
+      }
+    );
 
     if (!stripeCustomerResponse.ok) {
-      throw new Error("Failed to create Stripe customer");
+      const err = await stripeCustomerResponse.json().catch(() => ({}));
+      throw new Error(err.error?.message || "Failed to create Stripe customer");
     }
 
     const customer = await stripeCustomerResponse.json();
 
-    const paymentIntentResponse = await fetch("https://api.stripe.com/v1/payment_intents", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${stripeKey}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        amount: amountInCents.toString(),
-        currency: "nzd",
-        customer: customer.id,
-        "metadata[customer_email]": customerEmail,
-        "metadata[customer_name]": customerName,
-      }),
-    });
+    // 🔹 Create PaymentIntent (CARDS ONLY)
+    const paymentIntentResponse = await fetch(
+      "https://api.stripe.com/v1/payment_intents",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${stripeKey}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          amount: amountInCents.toString(),
+          currency: "nzd",
+          customer: customer.id,
+
+          // ✅ REQUIRED for PaymentElement when using cards only
+          "payment_method_types[]": "card",
+
+          // Optional but recommended
+          description: "Sitebox Wanaka Booking",
+          receipt_email: customerEmail,
+
+          "metadata[customer_email]": customerEmail,
+          "metadata[customer_name]": customerName,
+        }),
+      }
+    );
 
     if (!paymentIntentResponse.ok) {
-      const error = await paymentIntentResponse.json();
-      throw new Error(error.error?.message || "Failed to create payment intent");
+      const err = await paymentIntentResponse.json().catch(() => ({}));
+      throw new Error(err.error?.message || "Failed to create payment intent");
     }
 
     const paymentIntent = await paymentIntentResponse.json();
+
+    if (!paymentIntent.client_secret) {
+      throw new Error("Stripe did not return a client secret");
+    }
 
     return new Response(
       JSON.stringify({
@@ -88,13 +122,17 @@ Deno.serve(async (req: Request) => {
         customerId: customer.id,
       }),
       {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating payment intent:", error);
+
     return new Response(
-      JSON.stringify({ error: error.message || "Failed to create payment intent" }),
+      JSON.stringify({
+        error: error.message || "Failed to create payment intent",
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
