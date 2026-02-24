@@ -1,69 +1,80 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
-import { AlertCircle, Loader2, Lock } from 'lucide-react';
-import { SEO } from '../components/SEO';
-import { getAvailableTrailer } from '../lib/availability';
-import { generateBookingReference } from '../lib/booking-utils';
-import { formatPrice, calculatePricing, type PricingBreakdown } from '../lib/pricing';
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useStripe, useElements, PaymentElement } from "@stripe/react-stripe-js";
+import { AlertCircle, Loader2, Lock } from "lucide-react";
+import { SEO } from "../components/SEO";
+import { getAvailableTrailer } from "../lib/availability";
+import { generateBookingReference } from "../lib/booking-utils";
+import {
+  formatPrice,
+  calculatePricing,
+  type PricingBreakdown,
+  type AddOnsSelection,
+} from "../lib/pricing";
 
 interface CheckoutPageProps {
   customerId?: string;
 }
 
-type AddOnsState = {
-  hasPremiumLock: boolean;
-  hasWheelClamp: boolean;
-  hasGpsSecurity: boolean;
-};
-
-export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
+export function CheckoutPage({ customerId = "" }: CheckoutPageProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const stripe = useStripe();
   const elements = useElements();
 
-  const locationState = location.state as any;
+  // ✅ Freeze initial booking data so it doesn't go stale across replace() navigations
+  const bookingRef = useRef<any>(location.state);
 
-  // Add-ons state
-  const [hasPremiumLock, setHasPremiumLock] = useState(false);
-  const [hasWheelClamp, setHasWheelClamp] = useState(false);
-  const [hasGpsSecurity, setHasGpsSecurity] = useState(false);
+  const booking = bookingRef.current;
 
-  // Pricing state recalculated when add-ons change
-  const [pricing, setPricing] = useState<PricingBreakdown | null>(
-    locationState?.pricing || null
+  const [hasPremiumLock, setHasPremiumLock] = useState<boolean>(
+    !!booking?.hasPremiumLock
+  );
+  const [hasWheelClamp, setHasWheelClamp] = useState<boolean>(
+    !!booking?.hasWheelClamp
+  );
+  const [hasGpsSecurity, setHasGpsSecurity] = useState<boolean>(
+    !!booking?.hasGpsSecurity
   );
 
-  const [cardholderName, setCardholderName] = useState('');
-  const [cardholderNameError, setCardholderNameError] = useState<string | null>(null);
-  const [isPaymentElementComplete, setIsPaymentElementComplete] = useState(false);
+  const [pricing, setPricing] = useState<PricingBreakdown | null>(
+    booking?.pricing || null
+  );
+
+  const [cardholderName, setCardholderName] = useState("");
+  const [cardholderNameError, setCardholderNameError] = useState<string | null>(
+    null
+  );
+  const [isPaymentElementComplete, setIsPaymentElementComplete] =
+    useState(false);
   const [isPaymentElementReady, setIsPaymentElementReady] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Redirect if checkout opened directly
   useEffect(() => {
-    if (!locationState?.pricing) {
-      navigate('/book');
+    if (!booking?.pricing || !booking?.startDate || !booking?.endDate) {
+      navigate("/book");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Debug: verify Stripe readiness
   useEffect(() => {
     if (!stripe || !elements) {
-      console.log('[Checkout] Stripe or Elements not ready yet');
+      console.log("[Checkout] Stripe or Elements not ready yet");
     } else {
-      console.log('[Checkout] Stripe and Elements are ready');
+      console.log("[Checkout] Stripe and Elements are ready");
     }
   }, [stripe, elements]);
 
   const validateCardholderName = (name: string) => {
     if (!name.trim()) {
-      setCardholderNameError('Cardholder name is required');
+      setCardholderNameError("Cardholder name is required");
       return false;
     }
     if (name.trim().length < 3) {
-      setCardholderNameError('Please enter a valid name');
+      setCardholderNameError("Please enter a valid name");
       return false;
     }
     setCardholderNameError(null);
@@ -73,46 +84,63 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
   const handleCardholderNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setCardholderName(value);
-    if (value.trim()) {
-      validateCardholderName(value);
-    }
+    if (value.trim()) validateCardholderName(value);
   };
 
-  const onError = (errorMessage: string | null) => {
-    setError(errorMessage);
-  };
-
-  // Recalculate pricing when add-ons change
+  // ✅ Recalculate pricing when add-ons change (using stable bookingRef)
   useEffect(() => {
-    if (!locationState?.startDate || !locationState?.endDate || !locationState?.deliveryAddress) {
+    if (!booking?.startDate || !booking?.endDate || !booking?.deliveryAddress) {
+      console.warn("[Checkout] Missing booking fields needed for pricing", {
+        startDate: booking?.startDate,
+        endDate: booking?.endDate,
+        deliveryAddress: booking?.deliveryAddress,
+        bookingType: booking?.bookingType,
+      });
       return;
     }
 
+    const addOns: AddOnsSelection = {
+      hasPremiumLock,
+      hasWheelClamp,
+      hasGpsSecurity,
+    };
+
     const newPricing = calculatePricing(
-      new Date(locationState.startDate),
-      new Date(locationState.endDate),
-      locationState.deliveryAddress,
-      locationState.bookingType || 'standard',
-      {
-        hasPremiumLock,
-        hasWheelClamp,
-        hasGpsSecurity,
-      }
+      new Date(booking.startDate),
+      new Date(booking.endDate),
+      booking.deliveryAddress,
+      booking.bookingType || "standard",
+      addOns
     );
 
-    setPricing(newPricing);
-
-    // Update location state so StripeWrapper can recreate PaymentIntent
-    navigate(location.pathname, {
-      replace: true,
-      state: {
-        ...locationState,
-        pricing: newPricing,
-        hasPremiumLock,
-        hasWheelClamp,
-        hasGpsSecurity,
-      },
+    // ✅ Update local UI state immediately
+    setPricing((prev) => {
+      if (
+        prev &&
+        prev.totalPrice === newPricing.totalPrice &&
+        prev.addonsCost === newPricing.addonsCost
+      ) {
+        return prev;
+      }
+      return newPricing;
     });
+
+    // ✅ Only replace router state if totals changed (prevents loops)
+    const prevTotal = bookingRef.current?.pricing?.totalPrice;
+    const prevAddons = bookingRef.current?.pricing?.addonsCost;
+
+    if (prevTotal !== newPricing.totalPrice || prevAddons !== newPricing.addonsCost) {
+      bookingRef.current = {
+        ...bookingRef.current,
+        pricing: newPricing,
+        ...addOns,
+      };
+
+      navigate(location.pathname, {
+        replace: true,
+        state: bookingRef.current,
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasPremiumLock, hasWheelClamp, hasGpsSecurity]);
 
@@ -125,22 +153,22 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
     }
 
     if (!cardholderName.trim() || cardholderNameError) {
-      setCardholderNameError('Cardholder name is required');
+      setCardholderNameError("Cardholder name is required");
       return;
     }
 
     if (!isPaymentElementComplete) {
-      onError('Please complete your card details');
+      setError("Please complete your card details");
       return;
     }
 
     setProcessing(true);
-    onError(null);
+    setError(null);
 
     try {
       const trailerId = await getAvailableTrailer(
-        new Date(locationState.startDate),
-        new Date(locationState.endDate)
+        new Date(booking.startDate),
+        new Date(booking.endDate)
       );
 
       if (!trailerId) {
@@ -148,35 +176,18 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
       }
 
       const { error: submitError } = await elements.submit();
-      if (submitError) {
-        throw new Error(submitError.message);
-      }
+      if (submitError) throw new Error(submitError.message);
 
       const result = await stripe.confirmPayment({
         elements,
         redirect: "if_required",
       });
 
-      console.log("[Checkout] confirmPayment result:", result);
-
-      if (result.error) {
-        throw new Error(result.error.message);
-      }
-
-      if (!result.paymentIntent) {
-        throw new Error("Payment failed: No payment intent returned.");
-      }
-
+      if (result.error) throw new Error(result.error.message);
+      if (!result.paymentIntent) throw new Error("Payment failed: No payment intent returned.");
       if (result.paymentIntent.status !== "succeeded") {
-        throw new Error(
-          `Payment not completed. Status: ${result.paymentIntent.status}`
-        );
+        throw new Error(`Payment not completed. Status: ${result.paymentIntent.status}`);
       }
-
-      console.log(
-        "[Checkout] Payment succeeded with ID:",
-        result.paymentIntent.id
-      );
 
       const bookingReference = await generateBookingReference();
 
@@ -191,23 +202,25 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
           body: JSON.stringify({
             trailerId,
             bookingReference,
-            customerName: locationState.customerName,
-            customerEmail: locationState.customerEmail,
-            customerPhone: locationState.customerPhone,
-            deliveryAddress: locationState.deliveryAddress,
-            startDate: locationState.startDate,
-            endDate: locationState.endDate,
+            customerName: booking.customerName,
+            customerEmail: booking.customerEmail,
+            customerPhone: booking.customerPhone,
+            deliveryAddress: booking.deliveryAddress,
+            startDate: booking.startDate,
+            endDate: booking.endDate,
             durationWeeks: pricing.weeks,
-            bookingType: locationState.bookingType,
+            bookingType: booking.bookingType,
             weeklyRate: pricing.weeklyRate,
             rentalPrice: pricing.rentalPrice,
             deliveryFee: pricing.deliveryFee,
             pickupFee: pricing.pickupFee,
             addonsCost: pricing.addonsCost,
             totalPrice: pricing.totalPrice,
-            specialRequirements: locationState.specialRequirements,
+            specialRequirements: booking.specialRequirements,
             paymentIntentId: result.paymentIntent.id,
             stripeCustomerId: customerId,
+
+            // ✅ Save add-ons correctly
             hasPremiumLock,
             hasWheelClamp,
             hasGpsSecurity,
@@ -217,29 +230,16 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
 
       const bookingJson = await bookingResponse.json().catch(() => ({}));
 
-      console.log(
-        "[Checkout] Booking response:",
-        bookingResponse.status,
-        bookingJson
-      );
-
       if (!bookingResponse.ok) {
-        const errorMessage =
-          bookingJson.error ||
-          bookingJson.message ||
-          "Failed to create booking";
-        throw new Error(
-          `Backend Error (${bookingResponse.status}): ${errorMessage}`
-        );
+        const msg = bookingJson.error || bookingJson.message || "Failed to create booking";
+        throw new Error(`Backend Error (${bookingResponse.status}): ${msg}`);
       }
 
-      if (!bookingJson.ok || !bookingJson.booking) {
+      if (!bookingJson.booking) {
         throw new Error(bookingJson.message || "Failed to create booking");
       }
 
-      console.log('[Checkout] Booking created successfully:', bookingJson.booking.id);
-
-      navigate('/booking-confirmation', {
+      navigate("/booking-confirmation", {
         state: {
           booking: bookingJson.booking,
           bookingReference,
@@ -248,26 +248,21 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
         },
       });
     } catch (err: any) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
-      console.error('[Checkout] Error:', errorMessage);
-      onError(errorMessage);
+      const msg = err instanceof Error ? err.message : "An unexpected error occurred";
+      console.error("[Checkout] Error:", msg);
+      setError(msg);
     } finally {
       setProcessing(false);
     }
   };
 
-  if (!pricing) {
-    return null;
-  }
+  if (!pricing) return null;
 
   const allThreeSelected = hasPremiumLock && hasWheelClamp && hasGpsSecurity;
 
   return (
     <>
-      <SEO
-        title="Secure Checkout - Wanaka Trailer Hire"
-        description="Complete your trailer rental booking with secure payment"
-      />
+      <SEO title="Secure Checkout - Wanaka Trailer Hire" description="Complete your trailer rental booking with secure payment" />
 
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -279,65 +274,51 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
               <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-6 space-y-6">
-                {/* ADD-ONS SECTION */}
+                {/* ADD-ONS */}
                 <div className="border border-gray-200 rounded-lg p-4">
                   <h2 className="text-base font-semibold text-gray-900">Optional Security Add-ons</h2>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Select any extras you want to add to your booking.
-                  </p>
+                  <p className="text-sm text-gray-600 mt-1">Select any extras you want to add to your booking.</p>
 
                   <div className="mt-4 space-y-3">
-                    <label className="flex items-center justify-between gap-3 cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          checked={hasPremiumLock}
-                          onChange={(e) => setHasPremiumLock(e.target.checked)}
-                          disabled={processing}
-                          className="h-4 w-4"
-                        />
-                        <div>
-                          <div className="font-medium text-gray-900">Premium Lock</div>
-                          <div className="text-sm text-gray-600">
-                            One-time fee: $25.00
-                          </div>
-                        </div>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={hasPremiumLock}
+                        onChange={(e) => setHasPremiumLock(e.target.checked)}
+                        disabled={processing}
+                        className="h-4 w-4"
+                      />
+                      <div>
+                        <div className="font-medium text-gray-900">Premium Lock</div>
+                        <div className="text-sm text-gray-600">One-time fee: $25.00</div>
                       </div>
                     </label>
 
-                    <label className="flex items-center justify-between gap-3 cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          checked={hasWheelClamp}
-                          onChange={(e) => setHasWheelClamp(e.target.checked)}
-                          disabled={processing}
-                          className="h-4 w-4"
-                        />
-                        <div>
-                          <div className="font-medium text-gray-900">Wheel Clamp</div>
-                          <div className="text-sm text-gray-600">
-                            $15.00 / week
-                          </div>
-                        </div>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={hasWheelClamp}
+                        onChange={(e) => setHasWheelClamp(e.target.checked)}
+                        disabled={processing}
+                        className="h-4 w-4"
+                      />
+                      <div>
+                        <div className="font-medium text-gray-900">Wheel Clamp</div>
+                        <div className="text-sm text-gray-600">$15.00 / week</div>
                       </div>
                     </label>
 
-                    <label className="flex items-center justify-between gap-3 cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          checked={hasGpsSecurity}
-                          onChange={(e) => setHasGpsSecurity(e.target.checked)}
-                          disabled={processing}
-                          className="h-4 w-4"
-                        />
-                        <div>
-                          <div className="font-medium text-gray-900">GPS Security</div>
-                          <div className="text-sm text-gray-600">
-                            $10.00 / week
-                          </div>
-                        </div>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={hasGpsSecurity}
+                        onChange={(e) => setHasGpsSecurity(e.target.checked)}
+                        disabled={processing}
+                        className="h-4 w-4"
+                      />
+                      <div>
+                        <div className="font-medium text-gray-900">GPS Security</div>
+                        <div className="text-sm text-gray-600">$10.00 / week</div>
                       </div>
                     </label>
 
@@ -362,20 +343,16 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
                     onBlur={() => validateCardholderName(cardholderName)}
                     placeholder="Name on card"
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      cardholderNameError ? 'border-red-500' : 'border-gray-300'
+                      cardholderNameError ? "border-red-500" : "border-gray-300"
                     }`}
                     disabled={processing}
                   />
-                  {cardholderNameError && (
-                    <p className="mt-1 text-sm text-red-600">{cardholderNameError}</p>
-                  )}
+                  {cardholderNameError && <p className="mt-1 text-sm text-red-600">{cardholderNameError}</p>}
                 </div>
 
                 {/* PAYMENT */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Card Details
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Card Details</label>
                   <div className="border border-gray-300 rounded-lg p-4 min-h-[120px]">
                     {!isPaymentElementReady && (
                       <div className="flex items-center justify-center py-8">
@@ -384,20 +361,14 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
                       </div>
                     )}
                     <PaymentElement
-                      onReady={() => {
-                        console.log('[Checkout] PaymentElement is ready');
-                        setIsPaymentElementReady(true);
-                      }}
+                      onReady={() => setIsPaymentElementReady(true)}
                       onChange={(event) => {
-                        console.log('[Checkout] PaymentElement changed:', event.complete);
                         setIsPaymentElementComplete(event.complete);
-                        if (event.complete) {
-                          setError(null);
-                        }
+                        if (event.complete) setError(null);
                       }}
-                      onLoadError={(error) => {
-                        console.error('[Checkout] PaymentElement load error:', error);
-                        setError('Failed to load payment form. Please refresh the page.');
+                      onLoadError={(e) => {
+                        console.error("[Checkout] PaymentElement load error:", e);
+                        setError("Failed to load payment form. Please refresh the page.");
                       }}
                     />
                   </div>
@@ -420,13 +391,7 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
 
                 <button
                   type="submit"
-                  disabled={
-                    !stripe ||
-                    processing ||
-                    !cardholderName.trim() ||
-                    !!cardholderNameError ||
-                    !isPaymentElementComplete
-                  }
+                  disabled={!stripe || processing || !cardholderName.trim() || !!cardholderNameError || !isPaymentElementComplete}
                   className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
                   {processing ? (
@@ -449,7 +414,7 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">
-                      Rental ({pricing.weeks} {pricing.weeks === 1 ? 'week' : 'weeks'})
+                      Rental ({pricing.weeks} {pricing.weeks === 1 ? "week" : "weeks"})
                     </span>
                     <span className="font-medium">{formatPrice(pricing.rentalPrice)}</span>
                   </div>
@@ -479,12 +444,15 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
 
                 <div className="mt-6 pt-6 border-t space-y-2 text-sm text-gray-600">
                   <p className="font-medium text-gray-900">Delivery Details</p>
-                  <p>{locationState.customerName}</p>
-                  <p>{locationState.deliveryAddress}</p>
-                  <p className="pt-2">{locationState.startDate} to {locationState.endDate}</p>
+                  <p>{booking.customerName}</p>
+                  <p>{booking.deliveryAddress}</p>
+                  <p className="pt-2">
+                    {booking.startDate} to {booking.endDate}
+                  </p>
                 </div>
               </div>
             </div>
+            {/* END SUMMARY */}
           </div>
         </div>
       </div>
