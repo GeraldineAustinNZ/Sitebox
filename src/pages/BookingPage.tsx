@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, MapPin, User, AlertCircle, Loader2, Check } from 'lucide-react';
+import { Calendar, MapPin, User, AlertCircle, Loader2, Check, Bug } from 'lucide-react';
 import { SEO } from '../components/SEO';
 import { AddressAutocomplete } from '../components/AddressAutocomplete';
 import { checkAvailability, findNextAvailableDates, type AvailabilityResult, type DateSuggestion } from '../lib/availability';
 import { calculatePricing, type PricingBreakdown, SERVICE_AREAS } from '../lib/pricing';
 import { formatPrice } from '../lib/pricing';
 import { formatPhoneNumber, cleanPhoneNumber, isValidNZPhone, isValidEmail } from '../lib/phone-utils';
+import { isGoogleMapsLoaded, isPlacesLibraryLoaded } from '../lib/google-maps';
 
 type Step = 'dates' | 'location' | 'details';
 
@@ -20,6 +21,7 @@ export function BookingPage() {
   const [datesConfirmed, setDatesConfirmed] = useState(false);
 
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryLatLng, setDeliveryLatLng] = useState<{ lat: number; lng: number } | null>(null);
   const [bookingType, setBookingType] = useState<'standard' | 'trade'>('standard');
 
   const [customerName, setCustomerName] = useState('');
@@ -37,6 +39,7 @@ export function BookingPage() {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [validationAttempted, setValidationAttempted] = useState(false);
+  const [showDebug, setShowDebug] = useState(true);
 
   const minDate = new Date();
   minDate.setDate(minDate.getDate() + 1);
@@ -153,6 +156,16 @@ export function BookingPage() {
     }
   };
 
+  const handleAddressChange = (address: string, details?: { lat: number; lng: number }) => {
+    setDeliveryAddress(address);
+    if (details) {
+      setDeliveryLatLng(details);
+      console.log('[BookingPage] Address selected with coordinates:', address, details);
+    } else {
+      setDeliveryLatLng(null);
+    }
+  };
+
   const validateAndProceed = () => {
     setValidationAttempted(true);
 
@@ -171,6 +184,7 @@ export function BookingPage() {
         startDate,
         endDate,
         deliveryAddress,
+        deliveryLatLng,
         customerName,
         customerEmail,
         customerPhone: cleanPhoneNumber(customerPhone),
@@ -194,6 +208,54 @@ export function BookingPage() {
             <h1 className="text-4xl font-bold text-slate-900 mb-4">Book Your Trailer</h1>
             <p className="text-xl text-slate-600">Complete your booking in three easy steps</p>
           </div>
+
+          {showDebug && (
+            <div className="mb-8 bg-slate-900 text-white rounded-lg p-4 max-w-2xl mx-auto">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Bug className="w-5 h-5 text-emerald-400" />
+                  <h3 className="font-semibold text-emerald-400">Google Places Debug Info</h3>
+                </div>
+                <button
+                  onClick={() => setShowDebug(false)}
+                  className="text-slate-400 hover:text-white text-sm"
+                >
+                  Hide
+                </button>
+              </div>
+              <div className="space-y-2 font-mono text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400">API Key present:</span>
+                  <span className={import.meta.env.VITE_GOOGLE_PLACES_API_KEY ? 'text-emerald-400' : 'text-red-400'}>
+                    {import.meta.env.VITE_GOOGLE_PLACES_API_KEY ? '✓ Yes' : '✗ No'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400">window.google present:</span>
+                  <span className={isGoogleMapsLoaded() ? 'text-emerald-400' : 'text-red-400'}>
+                    {isGoogleMapsLoaded() ? '✓ Yes' : '✗ No'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400">Places library loaded:</span>
+                  <span className={isPlacesLibraryLoaded() ? 'text-emerald-400' : 'text-red-400'}>
+                    {isPlacesLibraryLoaded() ? '✓ Yes' : '✗ No'}
+                  </span>
+                </div>
+                {deliveryLatLng && (
+                  <div className="flex items-start gap-2 mt-3 pt-3 border-t border-slate-700">
+                    <span className="text-slate-400">Last selected:</span>
+                    <div className="flex-1">
+                      <div className="text-emerald-400">{deliveryAddress}</div>
+                      <div className="text-slate-500 text-xs">
+                        Lat: {deliveryLatLng.lat.toFixed(6)}, Lng: {deliveryLatLng.lng.toFixed(6)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-center mb-12">
             <div className="flex items-center space-x-4">
@@ -412,7 +474,7 @@ export function BookingPage() {
                       </label>
                       <AddressAutocomplete
                         value={deliveryAddress}
-                        onChange={(address) => setDeliveryAddress(address)}
+                        onChange={handleAddressChange}
                         placeholder="Enter your full delivery address"
                       />
                       <p className="mt-2 text-sm text-slate-500">
