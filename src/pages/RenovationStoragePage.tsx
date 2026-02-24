@@ -45,12 +45,6 @@ export function RenovationStoragePage() {
                   it stays on your property throughout the project. When you're finished, we collect it.
                   Simple, convenient, and cost-effective renovation storage Wanaka homeowners trust.
                 </p>
-                <Link
-                  to="/pricing#quote-form"
-                  className="inline-block bg-ocean-600 text-white px-8 py-3 rounded-md font-medium hover:bg-ocean-700 transition-colors"
-                >
-                  Get a Quote for Your Renovation
-                </Link>
               </div>
               <div>
                 <img
