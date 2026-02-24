@@ -202,11 +202,11 @@ export function BookingPage() {
         description="Book a secure mobile storage trailer for your renovation, building project, or storage needs in Wanaka."
       />
 
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-12">
-        <div className="container mx-auto px-4 max-w-6xl">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-slate-900 mb-4">Book Your Trailer</h1>
-            <p className="text-xl text-slate-600">Complete your booking in three easy steps</p>
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-8 sm:py-12">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
+          <div className="text-center mb-8 sm:mb-12">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mb-3 sm:mb-4">Book Your Trailer</h1>
+            <p className="text-base sm:text-lg md:text-xl text-slate-600">Complete your booking in three easy steps</p>
           </div>
 
           {import.meta.env.DEV && showDebug && (
@@ -257,22 +257,22 @@ export function BookingPage() {
             </div>
           )}
 
-          <div className="flex justify-center mb-12">
-            <div className="flex items-center space-x-4">
+          <div className="flex justify-center mb-8 sm:mb-12 overflow-x-auto">
+            <div className="flex items-center space-x-2 sm:space-x-4 px-4">
               <StepIndicator
                 number={1}
                 label="Select Dates"
                 active={currentStep === 'dates'}
                 completed={datesConfirmed}
               />
-              <div className="h-0.5 w-16 bg-slate-300" />
+              <div className="h-0.5 w-8 sm:w-16 bg-slate-300 flex-shrink-0" />
               <StepIndicator
                 number={2}
                 label="Location"
                 active={currentStep === 'location'}
                 completed={currentStep === 'details'}
               />
-              <div className="h-0.5 w-16 bg-slate-300" />
+              <div className="h-0.5 w-8 sm:w-16 bg-slate-300 flex-shrink-0" />
               <StepIndicator
                 number={3}
                 label="Your Details"
@@ -282,9 +282,9 @@ export function BookingPage() {
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
             <div className="lg:col-span-2">
-              <div className="bg-white rounded-xl shadow-lg p-8">
+              <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8">
                 {currentStep === 'dates' && (
                   <div className="space-y-6">
                     <div>
@@ -294,7 +294,7 @@ export function BookingPage() {
                       </h2>
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">
                           Start Date (Delivery)
@@ -308,7 +308,7 @@ export function BookingPage() {
                             setAvailability(null);
                             setAlternativeDates([]);
                           }}
-                          className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                          className="w-full px-4 py-3 min-h-[44px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-base"
                         />
                       </div>
 
@@ -325,7 +325,7 @@ export function BookingPage() {
                             setAvailability(null);
                             setAlternativeDates([]);
                           }}
-                          className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                          className="w-full px-4 py-3 min-h-[44px] border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-base"
                         />
                       </div>
                     </div>
@@ -441,7 +441,7 @@ export function BookingPage() {
                     <button
                       onClick={handleConfirmDates}
                       disabled={!availability?.available || checkingAvailability}
-                      className="w-full py-4 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
+                      className="w-full py-4 min-h-[48px] bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed text-base"
                     >
                       Confirm Dates & Continue
                     </button>
@@ -486,7 +486,7 @@ export function BookingPage() {
                       <label className="block text-sm font-medium text-slate-700 mb-2">
                         Booking Type *
                       </label>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <button
                           type="button"
                           onClick={() => setBookingType('standard')}
@@ -514,17 +514,17 @@ export function BookingPage() {
                       </div>
                     </div>
 
-                    <div className="flex gap-4">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                       <button
                         onClick={handleBackFromLocation}
-                        className="flex-1 py-4 bg-slate-200 text-slate-700 rounded-lg font-semibold hover:bg-slate-300 transition-colors"
+                        className="w-full sm:flex-1 py-4 min-h-[48px] bg-slate-200 text-slate-700 rounded-lg font-semibold hover:bg-slate-300 transition-colors text-base"
                       >
                         Back
                       </button>
                       <button
                         onClick={handleLocationNext}
                         disabled={!deliveryAddress || !pricing}
-                        className="flex-1 py-4 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
+                        className="w-full sm:flex-1 py-4 min-h-[48px] bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed text-base"
                       >
                         Continue to Details
                       </button>
@@ -621,17 +621,17 @@ export function BookingPage() {
                       </label>
                     </div>
 
-                    <div className="flex gap-4">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                       <button
                         onClick={handleBackFromDetails}
-                        className="flex-1 py-4 bg-slate-200 text-slate-700 rounded-lg font-semibold hover:bg-slate-300 transition-colors"
+                        className="w-full sm:flex-1 py-4 min-h-[48px] bg-slate-200 text-slate-700 rounded-lg font-semibold hover:bg-slate-300 transition-colors text-base"
                       >
                         Back
                       </button>
                       <button
                         onClick={validateAndProceed}
                         disabled={!customerName || !customerEmail || !customerPhone || !termsAccepted}
-                        className="flex-1 py-4 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
+                        className="w-full sm:flex-1 py-4 min-h-[48px] bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed text-base"
                       >
                         Proceed to Payment
                       </button>
@@ -643,7 +643,7 @@ export function BookingPage() {
 
             <div className="lg:col-span-1">
               {pricing && (
-                <div className="bg-white rounded-xl shadow-lg p-6 sticky top-24">
+                <div className="bg-white rounded-xl shadow-lg p-6 lg:sticky lg:top-24">
                   <h3 className="text-xl font-bold text-slate-900 mb-4">Booking Summary</h3>
 
                   <div className="space-y-3 mb-6">
@@ -699,9 +699,9 @@ export function BookingPage() {
 
 function StepIndicator({ number, label, active, completed }: { number: number; label: string; active: boolean; completed: boolean }) {
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center min-w-[80px] sm:min-w-[100px]">
       <div
-        className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-colors ${
+        className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold transition-colors ${
           completed
             ? 'bg-emerald-600 text-white'
             : active
@@ -709,9 +709,9 @@ function StepIndicator({ number, label, active, completed }: { number: number; l
             : 'bg-slate-200 text-slate-600'
         }`}
       >
-        {completed ? <Check className="w-6 h-6" /> : number}
+        {completed ? <Check className="w-5 h-5 sm:w-6 sm:h-6" /> : number}
       </div>
-      <span className={`mt-2 text-sm font-medium ${active ? 'text-slate-900' : 'text-slate-500'}`}>
+      <span className={`mt-2 text-xs sm:text-sm font-medium text-center ${active ? 'text-slate-900' : 'text-slate-500'}`}>
         {label}
       </span>
     </div>

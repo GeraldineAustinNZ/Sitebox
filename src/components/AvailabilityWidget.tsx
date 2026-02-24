@@ -64,14 +64,14 @@ export function AvailabilityWidget() {
   };
 
   return (
-    <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-2xl p-8 shadow-2xl">
+    <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-2xl p-6 sm:p-8 shadow-2xl">
       <div className="flex items-center justify-center mb-6">
-        <Calendar className="w-8 h-8 text-white mr-3" />
-        <h3 className="text-2xl font-bold text-white">Check Availability</h3>
+        <Calendar className="w-7 h-7 sm:w-8 sm:h-8 text-white mr-3" />
+        <h3 className="text-xl sm:text-2xl font-bold text-white">Check Availability</h3>
       </div>
 
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-emerald-50 mb-2">
               Start Date
@@ -86,7 +86,7 @@ export function AvailabilityWidget() {
                 setError(null);
                 setSuggestions([]);
               }}
-              className="w-full px-4 py-3 border border-emerald-300 bg-white text-emerald-700 rounded-lg focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+              className="w-full px-4 py-3 min-h-[44px] border border-emerald-300 bg-white text-emerald-700 rounded-lg focus:ring-2 focus:ring-emerald-400 focus:border-transparent text-base"
             />
           </div>
           <div>
@@ -103,7 +103,7 @@ export function AvailabilityWidget() {
                 setError(null);
                 setSuggestions([]);
               }}
-              className="w-full px-4 py-3 border border-emerald-300 bg-white text-emerald-700 rounded-lg focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+              className="w-full px-4 py-3 min-h-[44px] border border-emerald-300 bg-white text-emerald-700 rounded-lg focus:ring-2 focus:ring-emerald-400 focus:border-transparent text-base"
             />
           </div>
         </div>
@@ -192,11 +192,11 @@ export function AvailabilityWidget() {
           </div>
         )}
 
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={handleCheck}
             disabled={checking || !startDate || !endDate}
-            className="flex-1 py-3 bg-white text-emerald-700 rounded-lg font-semibold hover:bg-emerald-50 transition-colors disabled:bg-emerald-300 disabled:text-emerald-500 disabled:cursor-not-allowed flex items-center justify-center"
+            className="w-full sm:flex-1 py-3 min-h-[44px] bg-white text-emerald-700 rounded-lg font-semibold hover:bg-emerald-50 transition-colors disabled:bg-emerald-300 disabled:text-emerald-500 disabled:cursor-not-allowed flex items-center justify-center text-base"
           >
             {checking ? (
               <>
@@ -210,7 +210,7 @@ export function AvailabilityWidget() {
           {result?.available && (
             <button
               onClick={handleBookNow}
-              className="flex-1 py-3 bg-emerald-900 text-white rounded-lg font-semibold hover:bg-emerald-950 transition-colors"
+              className="w-full sm:flex-1 py-3 min-h-[44px] bg-emerald-900 text-white rounded-lg font-semibold hover:bg-emerald-950 transition-colors text-base"
             >
               Book Now
             </button>

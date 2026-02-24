@@ -19,9 +19,9 @@ export function Header() {
   return (
     <header className="bg-white border-b border-charcoal-200 sticky top-0 z-50">
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
+        <div className="flex h-16 sm:h-20 items-center justify-between">
           <div className="flex items-center">
-            <Link to="/" className="text-2xl font-bold text-charcoal-900">
+            <Link to="/" className="text-lg sm:text-xl md:text-2xl font-bold text-charcoal-900">
               Sitebox Wanaka
             </Link>
           </div>
@@ -85,7 +85,7 @@ export function Header() {
                   key={item.name}
                   to={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`block px-3 py-2 text-base font-medium ${
+                  className={`block px-4 py-3 text-base font-medium rounded-lg ${
                     isActive(item.href)
                       ? 'text-ocean-600 bg-ocean-50'
                       : 'text-charcoal-700 hover:bg-charcoal-50'
@@ -96,23 +96,23 @@ export function Header() {
               ))}
               <a
                 href="tel:+6401234567890"
-                className="flex items-center space-x-2 px-3 py-2 text-base font-medium text-charcoal-700 hover:bg-charcoal-50"
+                className="flex items-center space-x-2 px-4 py-3 text-base font-medium text-charcoal-700 hover:bg-charcoal-50 rounded-lg"
               >
-                <Phone className="h-4 w-4" />
+                <Phone className="h-5 w-5" />
                 <span>0123 456 7890</span>
               </a>
               <Link
                 to="/admin/login"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center space-x-2 px-3 py-2 text-base font-medium text-charcoal-600 hover:bg-charcoal-50"
+                className="flex items-center space-x-2 px-4 py-3 text-base font-medium text-charcoal-600 hover:bg-charcoal-50 rounded-lg"
               >
-                <Lock className="h-4 w-4" />
+                <Lock className="h-5 w-5" />
                 <span>Admin Login</span>
               </Link>
               <Link
                 to="/book"
                 onClick={() => setMobileMenuOpen(false)}
-                className="block mx-3 mt-2 bg-ocean-600 text-white px-6 py-2 rounded-md text-base font-medium text-center hover:bg-ocean-700"
+                className="block mt-3 bg-ocean-600 text-white px-6 py-3 rounded-lg text-base font-medium text-center hover:bg-ocean-700"
               >
                 Book Now
               </Link>

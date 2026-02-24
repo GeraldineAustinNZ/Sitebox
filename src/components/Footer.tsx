@@ -5,11 +5,11 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-charcoal-900 text-white">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+    <footer className="bg-charcoal-900 text-white pb-safe">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 mb-6 sm:mb-8">
           <div>
-            <h3 className="text-xl font-bold mb-4">Sitebox Wanaka</h3>
+            <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Sitebox Wanaka</h3>
             <p className="text-charcoal-300 text-sm leading-relaxed">
               Secure, weatherproof storage trailers delivered to your driveway or building site in Wanaka.
               Perfect for renovations, building projects, and short-term storage needs.
@@ -17,7 +17,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
+            <h4 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Quick Links</h4>
             <ul className="space-y-2">
               <li>
                 <Link to="/" className="text-charcoal-300 hover:text-white transition-colors text-sm">
@@ -47,8 +47,8 @@ export function Footer() {
             </ul>
           </div>
 
-          <div>
-            <h4 className="text-lg font-semibold mb-4">Contact Us</h4>
+          <div className="sm:col-span-2 md:col-span-1">
+            <h4 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Contact Us</h4>
             <ul className="space-y-3">
               <li className="flex items-start space-x-3 text-sm">
                 <MapPin className="h-5 w-5 text-ocean-400 flex-shrink-0 mt-0.5" />
@@ -74,10 +74,10 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-charcoal-700 pt-8 text-center">
-          <p className="text-charcoal-400 text-sm">
+        <div className="border-t border-charcoal-700 pt-6 sm:pt-8 text-center">
+          <p className="text-charcoal-400 text-xs sm:text-sm">
             &copy; {currentYear} Sitebox Wanaka. All rights reserved.
-            Delivering secure storage solutions across Wanaka, Lake Hawea, Albert Town, and Cardrona.
+            <span className="hidden sm:inline"><br className="sm:hidden" /> Delivering secure storage solutions across Wanaka, Lake Hawea, Albert Town, and Cardrona.</span>
           </p>
         </div>
       </div>

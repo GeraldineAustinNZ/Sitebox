@@ -95,7 +95,7 @@ export function PricingPage() {
       />
 
       <main>
-        <section className="bg-charcoal-900 text-white py-16">
+        <section className="bg-charcoal-900 text-white py-12 sm:py-16">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-3xl mx-auto">
               <h1 className="text-4xl md:text-5xl font-bold mb-6">

@@ -264,16 +264,16 @@ export function CheckoutPage({ customerId = "" }: CheckoutPageProps) {
     <>
       <SEO title="Secure Checkout - Wanaka Trailer Hire" description="Complete your trailer rental booking with secure payment" />
 
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="min-h-screen bg-gray-50 py-6 sm:py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Complete Your Booking</h1>
-            <p className="mt-2 text-gray-600">Secure payment powered by Stripe</p>
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Complete Your Booking</h1>
+            <p className="mt-2 text-sm sm:text-base text-gray-600">Secure payment powered by Stripe</p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
             <div className="lg:col-span-2">
-              <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+              <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-4 sm:p-6 space-y-4 sm:space-y-6">
                 {/* ADD-ONS */}
                 <div className="border border-gray-200 rounded-lg p-4">
                   <h2 className="text-base font-semibold text-gray-900">Optional Security Add-ons</h2>
@@ -342,7 +342,7 @@ export function CheckoutPage({ customerId = "" }: CheckoutPageProps) {
                     onChange={handleCardholderNameChange}
                     onBlur={() => validateCardholderName(cardholderName)}
                     placeholder="Name on card"
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    className={`w-full px-4 py-3 min-h-[44px] border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base ${
                       cardholderNameError ? "border-red-500" : "border-gray-300"
                     }`}
                     disabled={processing}
@@ -392,7 +392,7 @@ export function CheckoutPage({ customerId = "" }: CheckoutPageProps) {
                 <button
                   type="submit"
                   disabled={!stripe || processing || !cardholderName.trim() || !!cardholderNameError || !isPaymentElementComplete}
-                  className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  className="w-full bg-blue-600 text-white py-3 px-6 min-h-[48px] rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 text-base"
                 >
                   {processing ? (
                     <>
@@ -408,7 +408,7 @@ export function CheckoutPage({ customerId = "" }: CheckoutPageProps) {
 
             {/* SUMMARY */}
             <div className="lg:col-span-1">
-              <div className="bg-white rounded-lg shadow-sm p-6 sticky top-8">
+              <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 lg:sticky lg:top-8">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Booking Summary</h2>
 
                 <div className="space-y-3 text-sm">

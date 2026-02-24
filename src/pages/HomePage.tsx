@@ -44,25 +44,25 @@ export function HomePage() {
       />
 
       <main>
-        <section className="bg-gradient-to-br from-charcoal-900 via-charcoal-800 to-charcoal-900 text-white py-20">
+        <section className="bg-gradient-to-br from-charcoal-900 via-charcoal-800 to-charcoal-900 text-white py-12 sm:py-16 lg:py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
               <div>
-                <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-6">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4 sm:mb-6">
                   Delivered Secure Storage in Wanaka
                 </h1>
-                <p className="text-xl text-charcoal-200 mb-4">
+                <p className="text-lg sm:text-xl text-charcoal-200 mb-3 sm:mb-4">
                   Weatherproof storage trailers delivered directly to your driveway or building site.
                   No double handling, no hassle.
                 </p>
-                <p className="text-lg text-charcoal-300 mb-8">
+                <p className="text-base sm:text-lg text-charcoal-300 mb-6 sm:mb-8">
                   Perfect for renovations, building projects, and short-term storage needs across Wanaka,
                   Lake Hawea, Albert Town, and Cardrona.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                   <Link
                     to="/pricing"
-                    className="bg-white text-charcoal-900 px-8 py-4 rounded-md text-lg font-medium hover:bg-charcoal-100 transition-colors text-center"
+                    className="w-full sm:w-auto bg-white text-charcoal-900 px-6 sm:px-8 py-3 sm:py-4 min-h-[48px] rounded-lg text-base sm:text-lg font-medium hover:bg-charcoal-100 transition-colors text-center flex items-center justify-center"
                   >
                     View Pricing
                   </Link>
@@ -78,12 +78,12 @@ export function HomePage() {
           </div>
         </section>
 
-        <section className="py-16 bg-white">
+        <section className="py-12 sm:py-16 bg-white">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold text-center text-charcoal-900 mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold text-center text-charcoal-900 mb-8 sm:mb-12">
               How Sitebox Wanaka Works
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-10">
               <div className="text-center">
                 <div className="bg-ocean-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
                   <Truck className="h-10 w-10 text-ocean-600" />
@@ -118,14 +118,14 @@ export function HomePage() {
           </div>
         </section>
 
-        <section className="py-16 bg-charcoal-50">
+        <section className="py-12 sm:py-16 bg-charcoal-50">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
               <div>
-                <h2 className="text-3xl font-bold text-charcoal-900 mb-6">
+                <h2 className="text-2xl sm:text-3xl font-bold text-charcoal-900 mb-4 sm:mb-6">
                   Why Choose Mobile Storage in Wanaka?
                 </h2>
-                <p className="text-lg text-charcoal-700 mb-6">
+                <p className="text-base sm:text-lg text-charcoal-700 mb-4 sm:mb-6">
                   Traditional storage units in Wanaka require multiple trips and double handling of your
                   belongings. Sitebox Wanaka brings secure storage to you, saving time and effort.
                 </p>
@@ -168,69 +168,69 @@ export function HomePage() {
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-8 lg:mt-0">
                 <img
                   src="https://placehold.co/300x300/5f6876/ffffff?text=Secure+Lock"
                   alt="Secure storage Wanaka trailer with lock"
-                  className="rounded-lg shadow-md"
+                  className="rounded-lg shadow-md w-full"
                 />
                 <img
                   src="https://placehold.co/300x300/5f6876/ffffff?text=Weatherproof"
                   alt="Weatherproof storage trailer Wanaka"
-                  className="rounded-lg shadow-md"
+                  className="rounded-lg shadow-md w-full"
                 />
                 <img
                   src="https://placehold.co/300x300/5f6876/ffffff?text=Spacious+Interior"
                   alt="Short term storage Wanaka trailer interior"
-                  className="rounded-lg shadow-md"
+                  className="rounded-lg shadow-md w-full"
                 />
                 <img
                   src="https://placehold.co/300x300/5f6876/ffffff?text=Easy+Access"
                   alt="Renovation storage Wanaka easy access"
-                  className="rounded-lg shadow-md"
+                  className="rounded-lg shadow-md w-full"
                 />
               </div>
             </div>
           </div>
         </section>
 
-        <section className="py-16 bg-white">
+        <section className="py-12 sm:py-16 bg-white">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold text-center text-charcoal-900 mb-4">
+            <h2 className="text-2xl sm:text-3xl font-bold text-center text-charcoal-900 mb-3 sm:mb-4">
               Transparent Pricing for Wanaka Storage
             </h2>
-            <p className="text-center text-charcoal-600 mb-12 max-w-2xl mx-auto">
+            <p className="text-center text-base sm:text-lg text-charcoal-600 mb-8 sm:mb-12 max-w-2xl mx-auto px-4">
               Simple, straightforward pricing with no hidden fees. Get secure storage delivered
               to your door from just $260 per week.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="bg-charcoal-50 p-8 rounded-lg">
-                <DollarSign className="h-12 w-12 text-ocean-600 mb-4" />
-                <h3 className="text-xl font-bold text-charcoal-900 mb-2">Delivery & Pickup</h3>
-                <p className="text-3xl font-bold text-ocean-600 mb-2">$90</p>
-                <p className="text-charcoal-600">Each way in Wanaka township</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
+              <div className="bg-charcoal-50 p-6 sm:p-8 rounded-lg">
+                <DollarSign className="h-10 w-10 sm:h-12 sm:w-12 text-ocean-600 mb-3 sm:mb-4" />
+                <h3 className="text-lg sm:text-xl font-bold text-charcoal-900 mb-2">Delivery & Pickup</h3>
+                <p className="text-2xl sm:text-3xl font-bold text-ocean-600 mb-2">$90</p>
+                <p className="text-sm sm:text-base text-charcoal-600">Each way in Wanaka township</p>
               </div>
-              <div className="bg-ocean-50 p-8 rounded-lg border-2 border-ocean-600">
-                <div className="bg-ocean-600 text-white text-xs font-bold px-3 py-1 rounded-full inline-block mb-4">
+              <div className="bg-ocean-50 p-6 sm:p-8 rounded-lg border-2 border-ocean-600 sm:col-span-2 md:col-span-1">
+                <div className="bg-ocean-600 text-white text-xs font-bold px-3 py-1 rounded-full inline-block mb-3 sm:mb-4">
                   MOST POPULAR
                 </div>
-                <h3 className="text-xl font-bold text-charcoal-900 mb-2">Weekly Storage</h3>
-                <p className="text-3xl font-bold text-ocean-600 mb-2">From $260</p>
-                <p className="text-charcoal-600">1-4 weeks, then $210/week</p>
+                <h3 className="text-lg sm:text-xl font-bold text-charcoal-900 mb-2">Weekly Storage</h3>
+                <p className="text-2xl sm:text-3xl font-bold text-ocean-600 mb-2">From $260</p>
+                <p className="text-sm sm:text-base text-charcoal-600">1-4 weeks, then $210/week</p>
               </div>
-              <div className="bg-charcoal-50 p-8 rounded-lg">
-                <div className="bg-sage-600 text-white text-xs font-bold px-3 py-1 rounded-full inline-block mb-4">
+              <div className="bg-charcoal-50 p-6 sm:p-8 rounded-lg">
+                <div className="bg-sage-600 text-white text-xs font-bold px-3 py-1 rounded-full inline-block mb-3 sm:mb-4">
                   TRADE RATE
                 </div>
-                <h3 className="text-xl font-bold text-charcoal-900 mb-2">Builders & Tradies</h3>
-                <p className="text-3xl font-bold text-sage-600 mb-2">$220/wk</p>
-                <p className="text-charcoal-600">4-week minimum for trade accounts</p>
+                <h3 className="text-lg sm:text-xl font-bold text-charcoal-900 mb-2">Builders & Tradies</h3>
+                <p className="text-2xl sm:text-3xl font-bold text-sage-600 mb-2">$220/wk</p>
+                <p className="text-sm sm:text-base text-charcoal-600">4-week minimum for trade accounts</p>
               </div>
             </div>
-            <div className="text-center mt-8">
+            <div className="text-center mt-6 sm:mt-8">
               <Link
                 to="/pricing"
-                className="inline-block bg-ocean-600 text-white px-8 py-3 rounded-md font-medium hover:bg-ocean-700 transition-colors"
+                className="inline-block w-full sm:w-auto bg-ocean-600 text-white px-6 sm:px-8 py-3 min-h-[48px] rounded-lg font-medium hover:bg-ocean-700 transition-colors text-base flex items-center justify-center"
               >
                 View Full Pricing
               </Link>
@@ -238,14 +238,14 @@ export function HomePage() {
           </div>
         </section>
 
-        <section className="py-16 bg-charcoal-900 text-white">
+        <section className="py-12 sm:py-16 bg-charcoal-900 text-white">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-center">
               <div>
-                <h2 className="text-3xl font-bold mb-6">
+                <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">
                   Serving Wanaka and Surrounding Areas
                 </h2>
-                <p className="text-charcoal-200 mb-6 leading-relaxed">
+                <p className="text-base sm:text-lg text-charcoal-200 mb-4 sm:mb-6 leading-relaxed">
                   We deliver secure storage trailers throughout the Wanaka region, including Lake Hawea,
                   Albert Town, and Cardrona. Whether you're renovating a home, managing a building site,
                   or need temporary storage between properties, we bring the storage to you.
