@@ -3,17 +3,19 @@
 ## Changes Made
 
 ### 1. Installed Dependencies
-- `@googlemaps/js-api-loader` - Official Google Maps JavaScript API loader
-- `@types/google.maps` - TypeScript type definitions
+- `@types/google.maps` - TypeScript type definitions only
+- **No runtime dependencies** - Uses native script injection
 
 ### 2. New Files Created
 
 #### `/src/lib/google-maps.ts`
 Utility functions for loading and checking Google Maps API:
-- `loadGoogleMapsAPI(apiKey)` - Loads the Google Maps API with Places library
+- `loadGoogleMapsAPI(apiKey)` - Injects script tag to load Google Maps API with Places library
+- Uses direct script injection: `https://maps.googleapis.com/maps/api/js?key=${apiKey}&v=weekly&libraries=places`
 - `isGoogleMapsLoaded()` - Checks if `window.google` is available
 - `isPlacesLibraryLoaded()` - Checks if Places library is loaded
-- Singleton pattern to prevent multiple API loads
+- Promise-based singleton pattern to prevent multiple script injections
+- Handles existing scripts and concurrent load requests
 
 #### `/src/types/google-maps.d.ts`
 TypeScript declarations for `window.google`
@@ -48,8 +50,12 @@ Updated to:
 
 1. **On page load:** BookingPage renders, AddressAutocomplete component mounts
 2. **API Loading:** AddressAutocomplete checks for `VITE_GOOGLE_PLACES_API_KEY`
-3. **If key exists:** Calls `loadGoogleMapsAPI()` which loads the Google Maps script
-4. **Script loads:** Creates Autocomplete instance on the input field
+3. **If key exists:** Calls `loadGoogleMapsAPI()` which:
+   - Creates a `<script>` element
+   - Sets `src` to `https://maps.googleapis.com/maps/api/js?key=${apiKey}&v=weekly&libraries=places`
+   - Appends to `document.head`
+   - Returns a Promise that resolves when script loads
+4. **Script loads:** Creates Autocomplete instance on the input field using `new google.maps.places.Autocomplete()`
 5. **User types:** Google shows dropdown suggestions (NZ addresses only)
 6. **User selects:** `place_changed` event fires, extracts:
    - `formatted_address` - Full address string
