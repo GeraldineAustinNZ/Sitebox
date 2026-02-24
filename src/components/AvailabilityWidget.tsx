@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Loader2, AlertCircle, Check } from 'lucide-react';
-import { checkAvailability } from '../lib/availability';
+import { checkAvailability, findNextAvailableDates, DateSuggestion } from '../lib/availability';
 
 export function AvailabilityWidget() {
   const navigate = useNavigate();
@@ -10,6 +10,7 @@ export function AvailabilityWidget() {
   const [checking, setChecking] = useState(false);
   const [result, setResult] = useState<{ available: boolean; count: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<DateSuggestion[]>([]);
 
   const minDate = new Date();
   minDate.setDate(minDate.getDate() + 1);
@@ -32,6 +33,7 @@ export function AvailabilityWidget() {
     setChecking(true);
     setError(null);
     setResult(null);
+    setSuggestions([]);
 
     try {
       const availability = await checkAvailability(start, end);
@@ -39,6 +41,11 @@ export function AvailabilityWidget() {
         available: availability.available,
         count: availability.availableCount,
       });
+
+      if (!availability.available) {
+        const nextDates = await findNextAvailableDates(start, end);
+        setSuggestions(nextDates);
+      }
     } catch (err) {
       setError('Failed to check availability');
     } finally {
@@ -77,6 +84,7 @@ export function AvailabilityWidget() {
                 setStartDate(e.target.value);
                 setResult(null);
                 setError(null);
+                setSuggestions([]);
               }}
               className="w-full px-4 py-3 border border-emerald-300 bg-white text-emerald-700 rounded-lg focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
             />
@@ -93,6 +101,7 @@ export function AvailabilityWidget() {
                 setEndDate(e.target.value);
                 setResult(null);
                 setError(null);
+                setSuggestions([]);
               }}
               className="w-full px-4 py-3 border border-emerald-300 bg-white text-emerald-700 rounded-lg focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
             />
@@ -128,11 +137,58 @@ export function AvailabilityWidget() {
               <>
                 <AlertCircle className="w-5 h-5 text-white mr-2 mt-0.5 flex-shrink-0" />
                 <div className="text-white">
-                  <p className="font-medium">No trailers available</p>
-                  <p className="text-sm text-red-100">Try different dates or contact us</p>
+                  <p className="font-medium">No storage available for those dates.</p>
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {!result?.available && suggestions.length > 0 && (
+          <div className="bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg p-4">
+            <p className="text-white font-medium mb-3">Next available dates:</p>
+            <div className="space-y-2">
+              {suggestions.map((suggestion, index) => {
+                const startFormatted = suggestion.startDate.toLocaleDateString('en-NZ', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                });
+                const endFormatted = suggestion.endDate.toLocaleDateString('en-NZ', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                });
+
+                return (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      const startStr = suggestion.startDate.toISOString().split('T')[0];
+                      const endStr = suggestion.endDate.toISOString().split('T')[0];
+                      setStartDate(startStr);
+                      setEndDate(endStr);
+                      setResult(null);
+                      setSuggestions([]);
+                    }}
+                    className="w-full text-left bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg p-3 transition-colors"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="text-white">
+                        <p className="font-medium">
+                          {startFormatted} - {endFormatted}
+                        </p>
+                        <p className="text-sm text-emerald-100">
+                          {suggestion.durationDays} days • {suggestion.availableCount}{' '}
+                          {suggestion.availableCount === 1 ? 'trailer' : 'trailers'} available
+                        </p>
+                      </div>
+                      <Calendar className="w-5 h-5 text-white opacity-60" />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
