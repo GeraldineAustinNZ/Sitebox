@@ -1,4 +1,4 @@
-import { useEffect, useState, cloneElement, ReactElement } from 'react';
+import { useEffect, useMemo, useRef, useState, cloneElement, ReactElement } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe, Stripe } from '@stripe/stripe-js';
@@ -9,7 +9,6 @@ const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 if (!stripeKey) {
   console.error('[StripeWrapper] VITE_STRIPE_PUBLISHABLE_KEY is not defined');
 }
-
 if (stripeKey && !stripeKey.startsWith('pk_')) {
   console.error('[StripeWrapper] Invalid Stripe publishable key format. Key should start with "pk_"');
 }
@@ -23,56 +22,99 @@ interface StripeWrapperProps {
 export function StripeWrapper({ children }: StripeWrapperProps) {
   const location = useLocation();
   const navigate = useNavigate();
+
+  const locationState = location.state as any;
+
+  // Pull only the values we actually need (avoid depending on the whole object)
+  const totalPrice: number | null = locationState?.pricing?.totalPrice ?? null;
+  const customerName: string = locationState?.customerName ?? '';
+  const customerEmail: string = locationState?.customerEmail ?? '';
+
   const [stripe, setStripe] = useState<Stripe | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [customerId, setCustomerId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const locationState = location.state as any;
+  // prevent duplicate PI creation for same amount/email/name
+  const lastRequestKeyRef = useRef<string>('');
 
+  // A stable request key for "same intent inputs"
+  const requestKey = useMemo(() => {
+    if (!totalPrice || !customerEmail || !customerName) return '';
+    return `${customerEmail}::${customerName}::${totalPrice}`;
+  }, [customerEmail, customerName, totalPrice]);
+
+  // Guard: if no pricing, go back
   useEffect(() => {
     if (!locationState?.pricing) {
       navigate('/book');
-      return;
     }
+  }, [locationState?.pricing, navigate]);
 
-    const initializeStripe = async () => {
+  useEffect(() => {
+    let aborted = false;
+    const controller = new AbortController();
+
+    const initializeStripeAndIntent = async () => {
       try {
-        console.log('[StripeWrapper] Starting initialization...');
-
-        if (!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY) {
-          throw new Error('Stripe publishable key is not configured. Please add VITE_STRIPE_PUBLISHABLE_KEY to your .env file.');
+        // If we don't have required data yet, don't try
+        if (!requestKey) {
+          setLoading(false);
+          setError('Missing booking details (name/email/price). Please return to booking and try again.');
+          return;
         }
 
+        // If we've already created a PI for this exact requestKey, do nothing
+        if (lastRequestKeyRef.current === requestKey && clientSecret) {
+          return;
+        }
+
+        setLoading(true);
+        setError(null);
+
+        console.log('[StripeWrapper] Starting initialization for:', requestKey);
+
+        if (!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY) {
+          throw new Error('Stripe publishable key is not configured.');
+        }
         if (!import.meta.env.VITE_SUPABASE_URL) {
           throw new Error('Supabase URL is not configured');
         }
-
+        if (!import.meta.env.VITE_SUPABASE_ANON_KEY) {
+          throw new Error('Supabase anon key is not configured');
+        }
         if (!stripePromise) {
           throw new Error('Failed to initialize Stripe. Please check your Stripe publishable key.');
         }
 
-        const stripeInstance = await stripePromise;
-        if (!stripeInstance) {
-          throw new Error('Failed to load Stripe. Please check your Stripe publishable key and internet connection.');
+        // Load Stripe instance once
+        if (!stripe) {
+          const stripeInstance = await stripePromise;
+          if (!stripeInstance) {
+            throw new Error('Failed to load Stripe. Please check your Stripe publishable key and internet connection.');
+          }
+          if (aborted) return;
+          console.log('[StripeWrapper] Stripe loaded successfully');
+          setStripe(stripeInstance);
         }
-        console.log('[StripeWrapper] Stripe loaded successfully');
-        setStripe(stripeInstance);
 
-        console.log('[StripeWrapper] Creating payment intent...');
+        // Create (or recreate) a PaymentIntent when totalPrice changes
+        console.log('[StripeWrapper] Creating payment intent for total:', totalPrice);
+
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-payment-intent`,
           {
             method: 'POST',
+            signal: controller.signal,
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
             },
             body: JSON.stringify({
-              amount: locationState.pricing.totalPrice,
-              customerName: locationState.customerName,
-              customerEmail: locationState.customerEmail,
+              amount: totalPrice,
+              customerName,
+              customerEmail,
             }),
           }
         );
@@ -83,7 +125,7 @@ export function StripeWrapper({ children }: StripeWrapperProps) {
           const errorData = await response.json().catch(() => ({}));
           console.error('[StripeWrapper] Payment intent error:', errorData);
 
-          if (errorData.error && errorData.error.includes('Stripe is not configured')) {
+          if (errorData?.error?.includes?.('Stripe is not configured')) {
             throw new Error('Payment system is not configured. Please contact support to complete your booking.');
           }
 
@@ -91,25 +133,41 @@ export function StripeWrapper({ children }: StripeWrapperProps) {
         }
 
         const data = await response.json();
-        console.log('[StripeWrapper] Payment intent created successfully');
 
         if (!data.clientSecret) {
           throw new Error('Invalid payment response: missing client secret');
         }
 
+        if (aborted) return;
+
+        // Mark this requestKey as done so we don't recreate repeatedly
+        lastRequestKeyRef.current = requestKey;
+
         setClientSecret(data.clientSecret);
         setCustomerId(data.customerId || '');
         setLoading(false);
-      } catch (err) {
+
+        console.log('[StripeWrapper] Payment intent created successfully');
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
         console.error('[StripeWrapper] Initialization error:', err);
         const errorMessage = err instanceof Error ? err.message : 'Failed to initialize payment system';
-        setError(errorMessage);
-        setLoading(false);
+        if (!aborted) {
+          setError(errorMessage);
+          setLoading(false);
+        }
       }
     };
 
-    initializeStripe();
-  }, [locationState, navigate]);
+    initializeStripeAndIntent();
+
+    return () => {
+      aborted = true;
+      controller.abort();
+    };
+    // IMPORTANT: depend on scalar values, not full locationState
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestKey]);
 
   if (loading) {
     return (
@@ -140,8 +198,7 @@ export function StripeWrapper({ children }: StripeWrapperProps) {
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
               <p className="text-sm text-amber-900 font-medium mb-2">Configuration Required</p>
               <p className="text-sm text-amber-800">
-                The Stripe payment system needs to be configured. Please ensure the STRIPE_SECRET_KEY
-                is set in your Supabase edge function secrets.
+                Ensure STRIPE_SECRET_KEY is set in your Supabase edge function secrets.
               </p>
             </div>
           )}
@@ -165,12 +222,12 @@ export function StripeWrapper({ children }: StripeWrapperProps) {
     );
   }
 
-  if (!stripe || !clientSecret) {
-    return null;
-  }
+  if (!stripe || !clientSecret) return null;
 
   return (
     <Elements
+      // ✅ Force remount when clientSecret changes (new PaymentIntent)
+      key={clientSecret}
       stripe={stripe}
       options={{
         clientSecret,
