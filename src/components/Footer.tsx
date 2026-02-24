@@ -66,8 +66,8 @@ export function Footer() {
               </li>
               <li className="flex items-center space-x-3 text-sm">
                 <Mail className="h-5 w-5 text-ocean-400 flex-shrink-0" />
-                <a href="mailto:info@siteboxwanaka.co.nz" className="text-charcoal-300 hover:text-white transition-colors">
-                  info@siteboxwanaka.co.nz
+                <a href="mailto:team@sitebox.co.nz" className="text-charcoal-300 hover:text-white transition-colors">
+                  team@sitebox.co.nz
                 </a>
               </li>
             </ul>

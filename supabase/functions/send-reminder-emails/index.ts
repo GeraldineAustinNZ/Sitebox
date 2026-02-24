@@ -106,7 +106,7 @@ Deno.serve(async (req: Request) => {
           });
 
           const emailResponse = await resend.emails.send({
-            from: "Mobile Storage <bookings@yourdomain.com>",
+            from: "Sitebox Wanaka <team@sitebox.co.nz>",
             to: booking.customer_email,
             subject,
             html,
@@ -168,7 +168,7 @@ Deno.serve(async (req: Request) => {
           });
 
           const emailResponse = await resend.emails.send({
-            from: "Mobile Storage <bookings@yourdomain.com>",
+            from: "Sitebox Wanaka <team@sitebox.co.nz>",
             to: booking.customer_email,
             subject,
             html,

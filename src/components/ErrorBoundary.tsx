@@ -124,8 +124,8 @@ export class ErrorBoundary extends Component<Props, State> {
                 <div className="mt-6 pt-6 border-t border-slate-200">
                   <p className="text-sm text-slate-500">
                     If this problem persists, please contact us at{' '}
-                    <a href="mailto:bookings@siteboxwanaka.co.nz" className="text-emerald-600 hover:underline">
-                      bookings@siteboxwanaka.co.nz
+                    <a href="mailto:team@sitebox.co.nz" className="text-emerald-600 hover:underline">
+                      team@sitebox.co.nz
                     </a>
                   </p>
                 </div>
