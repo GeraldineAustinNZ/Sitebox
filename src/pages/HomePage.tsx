@@ -292,30 +292,6 @@ export function HomePage() {
           </div>
         </section>
 
-        <section className="py-16 bg-ocean-600 text-white">
-          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl font-bold mb-4">
-              Ready to Book Your Wanaka Storage Trailer?
-            </h2>
-            <p className="text-xl text-ocean-100 mb-8">
-              Only 3 trailers available. Contact us today to check availability for your dates.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                to="/book"
-                className="bg-white text-ocean-600 px-8 py-4 rounded-md text-lg font-medium hover:bg-charcoal-50 transition-colors"
-              >
-                Request a Quote
-              </Link>
-              <a
-                href="tel:+6401234567890"
-                className="bg-ocean-700 text-white px-8 py-4 rounded-md text-lg font-medium hover:bg-ocean-800 transition-colors border-2 border-white"
-              >
-                Call 0123 456 7890
-              </a>
-            </div>
-          </div>
-        </section>
       </main>
     </>
   );
