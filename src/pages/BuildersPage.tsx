@@ -28,12 +28,6 @@ export function BuildersPage() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <a
-                    href="#trade-enquiry"
-                    className="bg-ocean-600 text-white px-8 py-4 rounded-md text-lg font-medium hover:bg-ocean-700 transition-colors text-center"
-                  >
-                    Apply for Trade Account
-                  </a>
-                  <a
                     href="tel:+6401234567890"
                     className="bg-white text-charcoal-900 px-8 py-4 rounded-md text-lg font-medium hover:bg-charcoal-100 transition-colors text-center"
                   >
@@ -220,10 +214,9 @@ export function BuildersPage() {
                 <div className="bg-ocean-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-ocean-600">
                   1
                 </div>
-                <h3 className="text-xl font-semibold text-charcoal-900 mb-2">Apply for Trade Account</h3>
+                <h3 className="text-xl font-semibold text-charcoal-900 mb-2">Check Availability</h3>
                 <p className="text-charcoal-600">
-                  Fill out our trade account form. We'll confirm your account and discuss your
-                  storage needs.
+                  Contact us to check for availability on your preferred dates.
                 </p>
               </div>
               <div className="text-center">
@@ -326,28 +319,6 @@ export function BuildersPage() {
           </div>
         </section>
 
-        <section className="py-16 bg-white" id="trade-enquiry">
-          <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-            <div className="bg-charcoal-900 text-white p-8 rounded-lg">
-              <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold mb-4">
-                  Apply for a Trade Account
-                </h2>
-                <p className="text-charcoal-200">
-                  Get access to our $220/week trade rate and priority booking for your building
-                  projects in Wanaka.
-                </p>
-                <p className="text-sm text-ocean-400 font-medium mt-2">
-                  We'll respond within 24 hours to set up your account
-                </p>
-              </div>
-            </div>
-            <div className="bg-white p-8 rounded-lg shadow-lg -mt-4">
-              <TradeEnquiryForm />
-            </div>
-          </div>
-        </section>
-
         <section className="py-16 bg-charcoal-50">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <h2 className="text-3xl font-bold text-center text-charcoal-900 mb-12">
@@ -394,31 +365,6 @@ export function BuildersPage() {
           </div>
         </section>
 
-        <section className="py-16 bg-ocean-600 text-white">
-          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl font-bold mb-4">
-              Ready to Secure Your Site Storage in Wanaka?
-            </h2>
-            <p className="text-xl text-ocean-100 mb-8">
-              Join other Wanaka builders and tradies who trust Sitebox for secure, convenient
-              building site storage.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a
-                href="#trade-enquiry"
-                className="bg-white text-ocean-600 px-8 py-4 rounded-md text-lg font-medium hover:bg-charcoal-50 transition-colors"
-              >
-                Apply for Trade Account
-              </a>
-              <a
-                href="tel:+6401234567890"
-                className="bg-ocean-700 text-white px-8 py-4 rounded-md text-lg font-medium hover:bg-ocean-800 transition-colors border-2 border-white"
-              >
-                Call 0123 456 7890
-              </a>
-            </div>
-          </div>
-        </section>
       </main>
     </>
   );
