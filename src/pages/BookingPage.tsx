@@ -209,7 +209,7 @@ export function BookingPage() {
             <p className="text-xl text-slate-600">Complete your booking in three easy steps</p>
           </div>
 
-          {showDebug && (
+          {import.meta.env.DEV && showDebug && (
             <div className="mb-8 bg-slate-900 text-white rounded-lg p-4 max-w-2xl mx-auto">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
