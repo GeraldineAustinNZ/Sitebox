@@ -61,12 +61,6 @@ export function HomePage() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link
-                    to="/book"
-                    className="bg-ocean-600 text-white px-8 py-4 rounded-md text-lg font-medium hover:bg-ocean-700 transition-colors text-center"
-                  >
-                    Check Availability
-                  </Link>
-                  <Link
                     to="/pricing"
                     className="bg-white text-charcoal-900 px-8 py-4 rounded-md text-lg font-medium hover:bg-charcoal-100 transition-colors text-center"
                   >
