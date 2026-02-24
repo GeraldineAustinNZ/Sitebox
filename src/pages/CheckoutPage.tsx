@@ -1,28 +1,15 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
 import { AlertCircle, Loader2, Lock } from 'lucide-react';
 import { SEO } from '../components/SEO';
 import { getAvailableTrailer } from '../lib/availability';
 import { generateBookingReference } from '../lib/booking-utils';
-import { formatPrice, type PricingBreakdown } from '../lib/pricing';
+import { formatPrice, calculatePricing, type PricingBreakdown } from '../lib/pricing';
 
 interface CheckoutPageProps {
   customerId?: string;
 }
-
-/**
- * If you already have these prices in your pricing engine, replace these constants
- * with values coming from locationState or PricingBreakdown.
- */
-const ADDON_PRICES_NZD_PER_WEEK = {
-  premiumLock: 25,
-  wheelClamp: 20,
-  gpsSecurity: 30,
-};
-
-// Optional: bundle discount when all 3 selected
-const BUNDLE_DISCOUNT_NZD_PER_WEEK = 10;
 
 type AddOnsState = {
   hasPremiumLock: boolean;
@@ -38,17 +25,15 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
 
   const locationState = location.state as any;
 
-  // IMPORTANT: allow pricing to change when add-ons change
-  const [currentPricing, setCurrentPricing] = useState<PricingBreakdown | null>(
+  // Add-ons state
+  const [hasPremiumLock, setHasPremiumLock] = useState(false);
+  const [hasWheelClamp, setHasWheelClamp] = useState(false);
+  const [hasGpsSecurity, setHasGpsSecurity] = useState(false);
+
+  // Pricing state recalculated when add-ons change
+  const [pricing, setPricing] = useState<PricingBreakdown | null>(
     locationState?.pricing || null
   );
-
-  // Restore add-ons from state if they exist (so refresh/replace keeps them)
-  const [addOns, setAddOns] = useState<AddOnsState>(() => ({
-    hasPremiumLock: Boolean(locationState?.addOns?.hasPremiumLock),
-    hasWheelClamp: Boolean(locationState?.addOns?.hasWheelClamp),
-    hasGpsSecurity: Boolean(locationState?.addOns?.hasGpsSecurity),
-  }));
 
   const [cardholderName, setCardholderName] = useState('');
   const [cardholderNameError, setCardholderNameError] = useState<string | null>(null);
@@ -97,83 +82,44 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
     setError(errorMessage);
   };
 
-  /**
-   * Compute add-ons cost based on weeks and selected add-ons.
-   * (If your pricing engine already calculates this, replace this logic.)
-   */
-  const computedAddonsCost = useMemo(() => {
-    if (!currentPricing) return 0;
-    const weeks = currentPricing.weeks || 0;
-
-    const perWeek =
-      (addOns.hasPremiumLock ? ADDON_PRICES_NZD_PER_WEEK.premiumLock : 0) +
-      (addOns.hasWheelClamp ? ADDON_PRICES_NZD_PER_WEEK.wheelClamp : 0) +
-      (addOns.hasGpsSecurity ? ADDON_PRICES_NZD_PER_WEEK.gpsSecurity : 0);
-
-    const allThree =
-      addOns.hasPremiumLock && addOns.hasWheelClamp && addOns.hasGpsSecurity;
-
-    const discountPerWeek = allThree ? BUNDLE_DISCOUNT_NZD_PER_WEEK : 0;
-
-    const total = Math.max(0, (perWeek - discountPerWeek) * weeks);
-    return total;
-  }, [addOns, currentPricing]);
-
-  /**
-   * Recalculate totals whenever add-ons change.
-   * We update BOTH local state and location.state (replace) so a Stripe wrapper can
-   * recreate the PaymentIntent using the new total.
-   */
+  // Recalculate pricing when add-ons change
   useEffect(() => {
-    if (!currentPricing) return;
-
-    const baseTotalWithoutAddons =
-      (currentPricing.totalPrice ?? 0) - (currentPricing.addonsCost ?? 0);
-
-    const nextPricing: PricingBreakdown = {
-      ...currentPricing,
-      addonsCost: computedAddonsCost,
-      totalPrice: baseTotalWithoutAddons + computedAddonsCost,
-    };
-
-    setCurrentPricing(nextPricing);
-
-    // Update route state so other components (Stripe wrapper) can respond
-    // NOTE: This stays on /checkout but updates location.state.
-    navigate('/checkout', {
-      replace: true,
-      state: {
-        ...locationState,
-        pricing: nextPricing,
-        addOns,
-      },
-    });
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [computedAddonsCost]);
-
-  const toggleAddon = (key: keyof AddOnsState) => {
-    // If payment element already ready, changing add-ons may mismatch PaymentIntent amount.
-    // We prevent toggling after the payment UI is loaded to keep charge/booking consistent,
-    // unless your Stripe wrapper recreates the PaymentIntent instantly on pricing change.
-    if (isPaymentElementReady) {
-      setError(
-        'Add-ons are locked once the payment form loads. Refresh the page if you need to change add-ons.'
-      );
+    if (!locationState?.startDate || !locationState?.endDate || !locationState?.deliveryAddress) {
       return;
     }
 
-    setAddOns((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-    setError(null);
-  };
+    const newPricing = calculatePricing(
+      new Date(locationState.startDate),
+      new Date(locationState.endDate),
+      locationState.deliveryAddress,
+      locationState.bookingType || 'standard',
+      {
+        hasPremiumLock,
+        hasWheelClamp,
+        hasGpsSecurity,
+      }
+    );
+
+    setPricing(newPricing);
+
+    // Update location state so StripeWrapper can recreate PaymentIntent
+    navigate(location.pathname, {
+      replace: true,
+      state: {
+        ...locationState,
+        pricing: newPricing,
+        hasPremiumLock,
+        hasWheelClamp,
+        hasGpsSecurity,
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasPremiumLock, hasWheelClamp, hasGpsSecurity]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!stripe || !elements || !currentPricing) {
+    if (!stripe || !elements || !pricing) {
       console.error("Stripe not ready or pricing missing");
       return;
     }
@@ -251,22 +197,20 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
             deliveryAddress: locationState.deliveryAddress,
             startDate: locationState.startDate,
             endDate: locationState.endDate,
-            durationWeeks: currentPricing.weeks,
+            durationWeeks: pricing.weeks,
             bookingType: locationState.bookingType,
-            weeklyRate: currentPricing.weeklyRate,
-            rentalPrice: currentPricing.rentalPrice,
-            deliveryFee: currentPricing.deliveryFee,
-            pickupFee: currentPricing.pickupFee,
-            addonsCost: currentPricing.addonsCost,
-            totalPrice: currentPricing.totalPrice,
+            weeklyRate: pricing.weeklyRate,
+            rentalPrice: pricing.rentalPrice,
+            deliveryFee: pricing.deliveryFee,
+            pickupFee: pricing.pickupFee,
+            addonsCost: pricing.addonsCost,
+            totalPrice: pricing.totalPrice,
             specialRequirements: locationState.specialRequirements,
             paymentIntentId: result.paymentIntent.id,
             stripeCustomerId: customerId,
-
-            // ✅ restore add-on flags into booking record
-            hasPremiumLock: addOns.hasPremiumLock,
-            hasWheelClamp: addOns.hasWheelClamp,
-            hasGpsSecurity: addOns.hasGpsSecurity,
+            hasPremiumLock,
+            hasWheelClamp,
+            hasGpsSecurity,
           }),
         }
       );
@@ -312,12 +256,11 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
     }
   };
 
-  if (!currentPricing) {
+  if (!pricing) {
     return null;
   }
 
-  const allThreeSelected =
-    addOns.hasPremiumLock && addOns.hasWheelClamp && addOns.hasGpsSecurity;
+  const allThreeSelected = hasPremiumLock && hasWheelClamp && hasGpsSecurity;
 
   return (
     <>
@@ -336,7 +279,7 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
               <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-6 space-y-6">
-                {/* ✅ ADD-ONS SECTION */}
+                {/* ADD-ONS SECTION */}
                 <div className="border border-gray-200 rounded-lg p-4">
                   <h2 className="text-base font-semibold text-gray-900">Optional Security Add-ons</h2>
                   <p className="text-sm text-gray-600 mt-1">
@@ -348,15 +291,15 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
                       <div className="flex items-center gap-3">
                         <input
                           type="checkbox"
-                          checked={addOns.hasPremiumLock}
-                          onChange={() => toggleAddon('hasPremiumLock')}
+                          checked={hasPremiumLock}
+                          onChange={(e) => setHasPremiumLock(e.target.checked)}
                           disabled={processing}
                           className="h-4 w-4"
                         />
                         <div>
                           <div className="font-medium text-gray-900">Premium Lock</div>
                           <div className="text-sm text-gray-600">
-                            {formatPrice(ADDON_PRICES_NZD_PER_WEEK.premiumLock)} / week
+                            One-time fee: $25.00
                           </div>
                         </div>
                       </div>
@@ -366,15 +309,15 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
                       <div className="flex items-center gap-3">
                         <input
                           type="checkbox"
-                          checked={addOns.hasWheelClamp}
-                          onChange={() => toggleAddon('hasWheelClamp')}
+                          checked={hasWheelClamp}
+                          onChange={(e) => setHasWheelClamp(e.target.checked)}
                           disabled={processing}
                           className="h-4 w-4"
                         />
                         <div>
                           <div className="font-medium text-gray-900">Wheel Clamp</div>
                           <div className="text-sm text-gray-600">
-                            {formatPrice(ADDON_PRICES_NZD_PER_WEEK.wheelClamp)} / week
+                            $15.00 / week
                           </div>
                         </div>
                       </div>
@@ -384,15 +327,15 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
                       <div className="flex items-center gap-3">
                         <input
                           type="checkbox"
-                          checked={addOns.hasGpsSecurity}
-                          onChange={() => toggleAddon('hasGpsSecurity')}
+                          checked={hasGpsSecurity}
+                          onChange={(e) => setHasGpsSecurity(e.target.checked)}
                           disabled={processing}
                           className="h-4 w-4"
                         />
                         <div>
                           <div className="font-medium text-gray-900">GPS Security</div>
                           <div className="text-sm text-gray-600">
-                            {formatPrice(ADDON_PRICES_NZD_PER_WEEK.gpsSecurity)} / week
+                            $10.00 / week
                           </div>
                         </div>
                       </div>
@@ -400,13 +343,7 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
 
                     {allThreeSelected && (
                       <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-                        Bundle discount applied: {formatPrice(BUNDLE_DISCOUNT_NZD_PER_WEEK)} / week
-                      </div>
-                    )}
-
-                    {isPaymentElementReady && (
-                      <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
-                        Add-ons are locked once the payment form loads. Refresh the page if you need to change them.
+                        Bundle discount applied: 10% off total add-ons
                       </div>
                     )}
                   </div>
@@ -498,7 +435,7 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
                       Processing Payment...
                     </>
                   ) : (
-                    `Pay ${formatPrice(currentPricing.totalPrice)}`
+                    `Pay ${formatPrice(pricing.totalPrice)}`
                   )}
                 </button>
               </form>
@@ -512,31 +449,31 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">
-                      Rental ({currentPricing.weeks} {currentPricing.weeks === 1 ? 'week' : 'weeks'})
+                      Rental ({pricing.weeks} {pricing.weeks === 1 ? 'week' : 'weeks'})
                     </span>
-                    <span className="font-medium">{formatPrice(currentPricing.rentalPrice)}</span>
+                    <span className="font-medium">{formatPrice(pricing.rentalPrice)}</span>
                   </div>
 
                   <div className="flex justify-between">
                     <span className="text-gray-600">Delivery</span>
-                    <span className="font-medium">{formatPrice(currentPricing.deliveryFee)}</span>
+                    <span className="font-medium">{formatPrice(pricing.deliveryFee)}</span>
                   </div>
 
                   <div className="flex justify-between">
                     <span className="text-gray-600">Pickup</span>
-                    <span className="font-medium">{formatPrice(currentPricing.pickupFee)}</span>
+                    <span className="font-medium">{formatPrice(pricing.pickupFee)}</span>
                   </div>
 
-                  {currentPricing.addonsCost > 0 && (
+                  {pricing.addonsCost > 0 && (
                     <div className="flex justify-between">
                       <span className="text-gray-600">Add-ons</span>
-                      <span className="font-medium">{formatPrice(currentPricing.addonsCost)}</span>
+                      <span className="font-medium">{formatPrice(pricing.addonsCost)}</span>
                     </div>
                   )}
 
                   <div className="border-t pt-3 flex justify-between text-base">
                     <span className="font-semibold text-gray-900">Total</span>
-                    <span className="font-bold text-gray-900">{formatPrice(currentPricing.totalPrice)}</span>
+                    <span className="font-bold text-gray-900">{formatPrice(pricing.totalPrice)}</span>
                   </div>
                 </div>
 

@@ -65,8 +65,9 @@ export function StripeWrapper({ children }: StripeWrapperProps) {
           return;
         }
 
-        // If we've already created a PI for this exact requestKey, do nothing
+        // If we've already created a PI for this exact requestKey, skip
         if (lastRequestKeyRef.current === requestKey && clientSecret) {
+          console.log('[StripeWrapper] Skipping - already have PI for this requestKey');
           return;
         }
 
