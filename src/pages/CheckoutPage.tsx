@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
 import { AlertCircle, Loader2, Lock } from 'lucide-react';
@@ -11,6 +11,25 @@ interface CheckoutPageProps {
   customerId?: string;
 }
 
+/**
+ * If you already have these prices in your pricing engine, replace these constants
+ * with values coming from locationState or PricingBreakdown.
+ */
+const ADDON_PRICES_NZD_PER_WEEK = {
+  premiumLock: 25,
+  wheelClamp: 20,
+  gpsSecurity: 30,
+};
+
+// Optional: bundle discount when all 3 selected
+const BUNDLE_DISCOUNT_NZD_PER_WEEK = 10;
+
+type AddOnsState = {
+  hasPremiumLock: boolean;
+  hasWheelClamp: boolean;
+  hasGpsSecurity: boolean;
+};
+
 export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -18,7 +37,18 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
   const elements = useElements();
 
   const locationState = location.state as any;
-  const [currentPricing] = useState<PricingBreakdown | null>(locationState?.pricing || null);
+
+  // IMPORTANT: allow pricing to change when add-ons change
+  const [currentPricing, setCurrentPricing] = useState<PricingBreakdown | null>(
+    locationState?.pricing || null
+  );
+
+  // Restore add-ons from state if they exist (so refresh/replace keeps them)
+  const [addOns, setAddOns] = useState<AddOnsState>(() => ({
+    hasPremiumLock: Boolean(locationState?.addOns?.hasPremiumLock),
+    hasWheelClamp: Boolean(locationState?.addOns?.hasWheelClamp),
+    hasGpsSecurity: Boolean(locationState?.addOns?.hasGpsSecurity),
+  }));
 
   const [cardholderName, setCardholderName] = useState('');
   const [cardholderNameError, setCardholderNameError] = useState<string | null>(null);
@@ -31,7 +61,8 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
     if (!locationState?.pricing) {
       navigate('/book');
     }
-  }, [locationState, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!stripe || !elements) {
@@ -64,6 +95,79 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
 
   const onError = (errorMessage: string | null) => {
     setError(errorMessage);
+  };
+
+  /**
+   * Compute add-ons cost based on weeks and selected add-ons.
+   * (If your pricing engine already calculates this, replace this logic.)
+   */
+  const computedAddonsCost = useMemo(() => {
+    if (!currentPricing) return 0;
+    const weeks = currentPricing.weeks || 0;
+
+    const perWeek =
+      (addOns.hasPremiumLock ? ADDON_PRICES_NZD_PER_WEEK.premiumLock : 0) +
+      (addOns.hasWheelClamp ? ADDON_PRICES_NZD_PER_WEEK.wheelClamp : 0) +
+      (addOns.hasGpsSecurity ? ADDON_PRICES_NZD_PER_WEEK.gpsSecurity : 0);
+
+    const allThree =
+      addOns.hasPremiumLock && addOns.hasWheelClamp && addOns.hasGpsSecurity;
+
+    const discountPerWeek = allThree ? BUNDLE_DISCOUNT_NZD_PER_WEEK : 0;
+
+    const total = Math.max(0, (perWeek - discountPerWeek) * weeks);
+    return total;
+  }, [addOns, currentPricing]);
+
+  /**
+   * Recalculate totals whenever add-ons change.
+   * We update BOTH local state and location.state (replace) so a Stripe wrapper can
+   * recreate the PaymentIntent using the new total.
+   */
+  useEffect(() => {
+    if (!currentPricing) return;
+
+    const baseTotalWithoutAddons =
+      (currentPricing.totalPrice ?? 0) - (currentPricing.addonsCost ?? 0);
+
+    const nextPricing: PricingBreakdown = {
+      ...currentPricing,
+      addonsCost: computedAddonsCost,
+      totalPrice: baseTotalWithoutAddons + computedAddonsCost,
+    };
+
+    setCurrentPricing(nextPricing);
+
+    // Update route state so other components (Stripe wrapper) can respond
+    // NOTE: This stays on /checkout but updates location.state.
+    navigate('/checkout', {
+      replace: true,
+      state: {
+        ...locationState,
+        pricing: nextPricing,
+        addOns,
+      },
+    });
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [computedAddonsCost]);
+
+  const toggleAddon = (key: keyof AddOnsState) => {
+    // If payment element already ready, changing add-ons may mismatch PaymentIntent amount.
+    // We prevent toggling after the payment UI is loaded to keep charge/booking consistent,
+    // unless your Stripe wrapper recreates the PaymentIntent instantly on pricing change.
+    if (isPaymentElementReady) {
+      setError(
+        'Add-ons are locked once the payment form loads. Refresh the page if you need to change add-ons.'
+      );
+      return;
+    }
+
+    setAddOns((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+    setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -158,9 +262,11 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
             specialRequirements: locationState.specialRequirements,
             paymentIntentId: result.paymentIntent.id,
             stripeCustomerId: customerId,
-            hasPremiumLock: false,
-            hasWheelClamp: false,
-            hasGpsSecurity: false,
+
+            // ✅ restore add-on flags into booking record
+            hasPremiumLock: addOns.hasPremiumLock,
+            hasWheelClamp: addOns.hasWheelClamp,
+            hasGpsSecurity: addOns.hasGpsSecurity,
           }),
         }
       );
@@ -210,6 +316,9 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
     return null;
   }
 
+  const allThreeSelected =
+    addOns.hasPremiumLock && addOns.hasWheelClamp && addOns.hasGpsSecurity;
+
   return (
     <>
       <SEO
@@ -227,6 +336,83 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
               <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+                {/* ✅ ADD-ONS SECTION */}
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <h2 className="text-base font-semibold text-gray-900">Optional Security Add-ons</h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Select any extras you want to add to your booking.
+                  </p>
+
+                  <div className="mt-4 space-y-3">
+                    <label className="flex items-center justify-between gap-3 cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={addOns.hasPremiumLock}
+                          onChange={() => toggleAddon('hasPremiumLock')}
+                          disabled={processing}
+                          className="h-4 w-4"
+                        />
+                        <div>
+                          <div className="font-medium text-gray-900">Premium Lock</div>
+                          <div className="text-sm text-gray-600">
+                            {formatPrice(ADDON_PRICES_NZD_PER_WEEK.premiumLock)} / week
+                          </div>
+                        </div>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center justify-between gap-3 cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={addOns.hasWheelClamp}
+                          onChange={() => toggleAddon('hasWheelClamp')}
+                          disabled={processing}
+                          className="h-4 w-4"
+                        />
+                        <div>
+                          <div className="font-medium text-gray-900">Wheel Clamp</div>
+                          <div className="text-sm text-gray-600">
+                            {formatPrice(ADDON_PRICES_NZD_PER_WEEK.wheelClamp)} / week
+                          </div>
+                        </div>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center justify-between gap-3 cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={addOns.hasGpsSecurity}
+                          onChange={() => toggleAddon('hasGpsSecurity')}
+                          disabled={processing}
+                          className="h-4 w-4"
+                        />
+                        <div>
+                          <div className="font-medium text-gray-900">GPS Security</div>
+                          <div className="text-sm text-gray-600">
+                            {formatPrice(ADDON_PRICES_NZD_PER_WEEK.gpsSecurity)} / week
+                          </div>
+                        </div>
+                      </div>
+                    </label>
+
+                    {allThreeSelected && (
+                      <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                        Bundle discount applied: {formatPrice(BUNDLE_DISCOUNT_NZD_PER_WEEK)} / week
+                      </div>
+                    )}
+
+                    {isPaymentElementReady && (
+                      <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                        Add-ons are locked once the payment form loads. Refresh the page if you need to change them.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* CARDHOLDER NAME */}
                 <div>
                   <label htmlFor="cardholderName" className="block text-sm font-medium text-gray-700 mb-2">
                     Cardholder Name
@@ -248,6 +434,7 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
                   )}
                 </div>
 
+                {/* PAYMENT */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Card Details
@@ -296,7 +483,13 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
 
                 <button
                   type="submit"
-                  disabled={!stripe || processing || !cardholderName.trim() || !!cardholderNameError || !isPaymentElementComplete}
+                  disabled={
+                    !stripe ||
+                    processing ||
+                    !cardholderName.trim() ||
+                    !!cardholderNameError ||
+                    !isPaymentElementComplete
+                  }
                   className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
                   {processing ? (
@@ -311,13 +504,16 @@ export function CheckoutPage({ customerId = '' }: CheckoutPageProps) {
               </form>
             </div>
 
+            {/* SUMMARY */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-lg shadow-sm p-6 sticky top-8">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Booking Summary</h2>
 
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Rental ({currentPricing.weeks} {currentPricing.weeks === 1 ? 'week' : 'weeks'})</span>
+                    <span className="text-gray-600">
+                      Rental ({currentPricing.weeks} {currentPricing.weeks === 1 ? 'week' : 'weeks'})
+                    </span>
                     <span className="font-medium">{formatPrice(currentPricing.rentalPrice)}</span>
                   </div>
 
